@@ -112,7 +112,7 @@
     <div class="kpi-grid" id="kpi-overview"></div>
     <div class="g3">
       <div class="card span2">
-        <div class="ct">Supply vs demand — daily (MWh)</div>
+        <div class="ct">Supply vs Demand — Daily (MWh)</div>
         <div class="cs">Side-by-side comparison per day · blue = supply · red = demand</div>
         <div class="leg"><div class="li"><div class="lb" style="background:#1e4080"></div>Supply (MWh)</div><div class="li"><div class="lb" style="background:#e24b4a"></div>Demand (MWh)</div></div>
         <div style="position:relative;height:270px"><canvas id="ovChart"></canvas></div>
@@ -130,7 +130,7 @@
         <div style="position:relative;height:200px"><canvas id="ovSD"></canvas></div>
       </div>
       <div class="card">
-        <div class="ct">Supply vs demand peak (MW)</div>
+        <div class="ct">Supply vs Demand Peak (MW)</div>
         <div class="cs">Highest 30-min interval value per day</div>
         <div class="leg"><div class="li"><div class="lb" style="background:#1e4080"></div>Supply peak</div><div class="li"><div class="lb" style="background:#e24b4a;border-radius:50%"></div>Demand peak</div></div>
         <div style="position:relative;height:200px"><canvas id="ovPeak"></canvas></div>
@@ -142,14 +142,14 @@
   <div id="tab-supply" class="panel">
     <div class="kpi-grid" id="kpi-supply"></div>
     <div class="g1"><div class="card">
-      <div class="ct">Daily energy supply by supplier — stacked (MWh)</div>
+      <div class="ct">Daily Energy Supply by Supplier — stacked (MWh)</div>
       <div class="cs">PSALM + TSI + SMCPC combined per day</div>
       <div class="leg"><div class="li"><div class="lb" style="background:#f97316"></div>PSALM</div><div class="li"><div class="lb" style="background:#f59e0b"></div>TSI</div><div class="li"><div class="lb" style="background:#eab308"></div>SMCPC</div></div>
       <div style="position:relative;height:300px"><canvas id="supStacked"></canvas></div>
     </div></div>
     <div class="g2">
       <div class="card">
-        <div class="ct">Supplier daily trend (MWh)</div>
+        <div class="ct">Supplier Daily Trend (MWh)</div>
         <div class="cs">Individual lines per supplier</div>
         <div class="leg"><div class="li"><div class="lb" style="background:#f97316"></div>PSALM</div><div class="li"><div class="lb" style="background:#f59e0b"></div>TSI</div><div class="li"><div class="lb" style="background:#eab308"></div>SMCPC</div></div>
         <div style="position:relative;height:220px"><canvas id="supLine"></canvas></div>
@@ -166,13 +166,13 @@
   <div id="tab-demand" class="panel">
     <div class="kpi-grid" id="kpi-demand"></div>
     <div class="g1"><div class="card">
-      <div class="ct">Daily demand (MWh)</div>
-      <div class="cs">Total distribution utility demand per day · red &gt; 520 MWh · amber &gt; 500 MWh</div>
+      <div class="ct">Daily Demand (MWh)</div>
+      <div class="cs">COTELCO-PPALMA Demand per day · red &gt; 520 MWh · amber &gt; 500 MWh</div>
       <div style="position:relative;height:280px"><canvas id="demBar"></canvas></div>
     </div></div>
     <div class="g2">
       <div class="card">
-        <div class="ct">Daily peak demand (MW)</div>
+        <div class="ct">Daily Peak Demand (MW)</div>
         <div class="cs">Highest 30-min interval per day · red ≥ 27 MW · amber ≥ 25 MW</div>
         <div style="position:relative;height:220px"><canvas id="demPeak"></canvas></div>
       </div>
@@ -195,13 +195,13 @@
     </div></div>
     <div class="g2">
       <div class="card">
-        <div class="ct">Supply vs demand — daily overlay</div>
+        <div class="ct">Supply vs Demand — daily overlay</div>
         <div class="cs">Gap between lines = surplus or deficit</div>
         <div class="leg"><div class="li"><div class="lb" style="background:#1e4080"></div>Supply</div><div class="li"><div class="lb" style="background:#e24b4a"></div>Demand</div></div>
         <div style="position:relative;height:220px"><canvas id="sdOverlay"></canvas></div>
       </div>
       <div class="card">
-        <div class="ct">Avg interval surplus/deficit profile (MW)</div>
+        <div class="ct">Avg interval Surplus/Deficit profile (MW)</div>
         <div class="cs">Mean supply minus demand per 30-min interval</div>
         <div style="position:relative;height:220px"><canvas id="sdProfile"></canvas></div>
       </div>
@@ -211,7 +211,7 @@
   <!-- LOAD PROFILE -->
   <div id="tab-profile" class="panel">
     <div class="g1"><div class="card">
-      <div class="ct">Average 30-min load profile — supply vs demand (MW)</div>
+      <div class="ct">Average 30-min load profile — Supply vs Demand (MW)</div>
       <div class="cs">Mean MW per interval across all days in range · INT 1 = 00:00–00:30 · INT 24 = 23:30–24:00</div>
       <div class="leg"><div class="li"><div class="lb" style="background:#1e4080"></div>Avg supply (MW)</div><div class="li"><div class="lb" style="background:#e24b4a"></div>Avg demand (MW)</div></div>
       <div style="position:relative;height:300px"><canvas id="profChart"></canvas></div>
@@ -234,7 +234,7 @@
   <div id="tab-suppliers" class="panel">
     <div class="sup-grid" id="sup-cards"></div>
     <div class="g1"><div class="card">
-      <div class="ct">Daily energy by supplier — side-by-side (MWh)</div>
+      <div class="ct">Daily Energy by Supplier — side-by-side (MWh)</div>
       <div class="cs">Grouped bar chart per supplier per day</div>
       <div class="leg"><div class="li"><div class="lb" style="background:#f97316"></div>PSALM — Power Sector Assets &amp; Liabilities Mgmt.</div><div class="li"><div class="lb" style="background:#f59e0b"></div>TSI — Therma South, Inc.</div><div class="li"><div class="lb" style="background:#eab308"></div>SMCPC — Malita Power Inc.</div></div>
       <div style="position:relative;height:300px"><canvas id="supComp"></canvas></div>
