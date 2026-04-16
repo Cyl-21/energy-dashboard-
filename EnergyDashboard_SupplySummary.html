@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Utilization & Demand Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f5f7; color: #1a1a1a; font-size: 14px; }
+  a { color: inherit; }
+
+  /* Header */
+  .header { background: #0f3460; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .header-title { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .header-sub { font-size: 12px; opacity: .7; margin-top: 2px; }
+  .header-badge { background: rgba(255,255,255,.15); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+
+  /* Layout */
+  .container { max-width: 1400px; margin: 0 auto; padding: 20px 20px; }
+
+  /* Filter bar */
+  .filter-bar { background: #fff; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .05em; }
+  .filter-bar select, .filter-bar input[type=date] { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; background: #fafafa; cursor: pointer; }
+  .filter-bar select:focus, .filter-bar input:focus { outline: 2px solid #0f3460; outline-offset: 1px; }
+  .filter-btn { background: #0f3460; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .filter-btn:hover { background: #185fa5; }
+  .reset-btn { background: transparent; color: #666; border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  .reset-btn:hover { background: #f0f0f0; }
+
+  /* Nav tabs */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab-btn { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer; color: #555; transition: all .15s; }
+  .tab-btn:hover { background: #f0f4ff; color: #0f3460; }
+  .tab-btn.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+
+  /* KPI cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .kpi-card { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.07); border-left: 3px solid #0f3460; }
+  .kpi-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 700; color: #0f3460; line-height: 1; }
+  .kpi-unit { font-size: 13px; font-weight: 400; color: #888; }
+  .kpi-sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .kpi-card.green { border-left-color: #1d9e75; }
+  .kpi-card.green .kpi-value { color: #0f6e56; }
+  .kpi-card.amber { border-left-color: #f59e0b; }
+  .kpi-card.amber .kpi-value { color: #854F0B; }
+  .kpi-card.red { border-left-color: #e24b4a; }
+  .kpi-card.red .kpi-value { color: #a32d2d; }
+
+  /* Chart cards */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .chart-grid.full { grid-template-columns: 1fr; }
+  .chart-grid.three { grid-template-columns: 2fr 1fr; }
+  .chart-card { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .chart-card.span2 { grid-column: span 2; }
+  .chart-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: #999; margin-bottom: 14px; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+  .legend-box { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Panel visibility */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Supplier cards */
+  .sup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .sup-card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .sup-name { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 2px; }
+  .sup-full { font-size: 11px; color: #999; margin-bottom: 12px; }
+  .sup-stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+  .sup-stat:last-child { border-bottom: none; }
+  .sup-stat-label { color: #888; }
+  .sup-stat-val { font-weight: 600; color: #333; }
+  .pct-bar { height: 6px; background: #f0f0f0; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .pct-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { background: #0f3460; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .data-table td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+  .data-table tr:hover td { background: #f8f9ff; }
+  .data-table tr:nth-child(even) td { background: #fafafa; }
+  .data-table tr:nth-child(even):hover td { background: #f8f9ff; }
+  .peak-high { color: #a32d2d; font-weight: 600; }
+  .peak-mid { color: #854F0B; font-weight: 600; }
+  .peak-low { color: #0f6e56; }
+  .tbl-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+
+  /* Footer */
+  .footer { text-align: center; color: #bbb; font-size: 11px; padding: 20px 0 30px; }
+
+  @media (max-width: 700px) {
+    .chart-grid, .chart-grid.three { grid-template-columns: 1fr; }
+    .chart-card.span2 { grid-column: span 1; }
+    .sup-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Energy Utilization &amp; Demand Dashboard</div>
+    <div class="header-sub">Distribution Utility Supply Summary &nbsp;·&nbsp; Cotabato Electric Cooperative Area</div>
+  </div>
+  <div class="header-badge">Mar 26 – Apr 14, 2026</div>
+</div>
+
+<div class="container">
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Supplier</span>
+      <select id="fil-supplier" onchange="applyFilters()">
+        <option value="ALL">All suppliers</option>
+        <option value="PSALM">PSALM</option>
+        <option value="TSI">TSI (Therma South)</option>
+        <option value="SMCPC">SMCPC (Malita Power)</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Date from</span>
+      <input type="date" id="fil-from" value="2026-03-26" min="2026-03-26" max="2026-04-14" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Date to</span>
+      <input type="date" id="fil-to" value="2026-04-14" min="2026-03-26" max="2026-04-14" onchange="applyFilters()">
+    </div>
+    <button class="reset-btn" onclick="resetFilters()">Reset</button>
+    <div style="margin-left:auto;font-size:12px;color:#999;" id="filter-status">Showing all 20 days</div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="showTab('daily',this)">Daily Energy</button>
+    <button class="tab-btn" onclick="showTab('demand',this)">Peak Demand</button>
+    <button class="tab-btn" onclick="showTab('profile',this)">Load Profile</button>
+    <button class="tab-btn" onclick="showTab('suppliers',this)">Suppliers</button>
+    <button class="tab-btn" onclick="showTab('table',this)">Data Table</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="panel active">
+    <div class="kpi-grid" id="kpi-row"></div>
+    <div class="chart-grid three">
+      <div class="chart-card span2">
+        <div class="chart-title">Total daily energy supplied (MWh) with peak demand overlay</div>
+        <div class="chart-sub">Bar = energy consumed · Line = peak demand (MW) · right axis</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>Total energy (MWh)</div>
+          <div class="legend-item"><div class="legend-box" style="background:#e24b4a;border-radius:50%"></div>Peak demand (MW)</div>
+        </div>
+        <div style="position:relative;height:260px;"><canvas id="overviewChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Supplier energy share</div>
+        <div class="chart-sub">% of total energy supplied</div>
+        <div style="position:relative;height:220px;"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Cumulative energy supplied (MWh)</div>
+        <div class="chart-sub">Running total across the period</div>
+        <div style="position:relative;height:200px;"><canvas id="cumulChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Average 30-min interval load profile</div>
+        <div class="chart-sub">Mean MW demand per interval across all days</div>
+        <div style="position:relative;height:200px;"><canvas id="profileMini"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAILY ENERGY -->
+  <div id="tab-daily" class="panel">
+    <div class="chart-grid full">
+      <div class="chart-card">
+        <div class="chart-title">Daily energy by supplier (MWh) — stacked</div>
+        <div class="chart-sub">Contribution of each supplier per day</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>PSALM</div>
+          <div class="legend-item"><div class="legend-box" style="background:#0f6e56"></div>TSI</div>
+          <div class="legend-item"><div class="legend-box" style="background:#993c1d"></div>SMCPC</div>
+        </div>
+        <div style="position:relative;height:300px;"><canvas id="dailyStackedChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Daily energy trend by supplier</div>
+        <div class="chart-sub">Individual line per supplier</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>PSALM</div>
+          <div class="legend-item"><div class="legend-box" style="background:#0f6e56"></div>TSI</div>
+          <div class="legend-item"><div class="legend-box" style="background:#993c1d"></div>SMCPC</div>
+        </div>
+        <div style="position:relative;height:220px;"><canvas id="supLineChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Cumulative energy by supplier</div>
+        <div class="chart-sub">Running total per supplier</div>
+        <div style="position:relative;height:220px;"><canvas id="cumulSupChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PEAK DEMAND -->
+  <div id="tab-demand" class="panel">
+    <div class="kpi-grid" id="demand-kpis"></div>
+    <div class="chart-grid full">
+      <div class="chart-card">
+        <div class="chart-title">Daily peak demand (MW)</div>
+        <div class="chart-sub">Highest 30-min interval value per day — red ≥ 23.5 MW · amber ≥ 23 MW · blue &lt; 23 MW</div>
+        <div style="position:relative;height:280px;"><canvas id="peakChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Peak demand by supplier (MW)</div>
+        <div class="chart-sub">Grouped comparison per day</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>PSALM</div>
+          <div class="legend-item"><div class="legend-box" style="background:#0f6e56"></div>TSI</div>
+          <div class="legend-item"><div class="legend-box" style="background:#993c1d"></div>SMCPC</div>
+        </div>
+        <div style="position:relative;height:220px;"><canvas id="supPeakChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Peak demand distribution</div>
+        <div class="chart-sub">How many days fell in each demand range</div>
+        <div style="position:relative;height:220px;"><canvas id="peakHistChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOAD PROFILE -->
+  <div id="tab-profile" class="panel">
+    <div class="chart-grid full">
+      <div class="chart-card">
+        <div class="chart-title">Average 30-minute interval load profile (MW)</div>
+        <div class="chart-sub">Mean demand per interval across all days in selected range · INT 1 = 00:00–00:30 · INT 24 = 23:30–24:00</div>
+        <div style="position:relative;height:300px;"><canvas id="profileChart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Load profile — min / avg / max band</div>
+        <div class="chart-sub">Range of values across the period per interval</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#e24b4a"></div>Max</div>
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>Avg</div>
+          <div class="legend-item"><div class="legend-box" style="background:#1d9e75"></div>Min</div>
+        </div>
+        <div style="position:relative;height:220px;"><canvas id="bandChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Off-peak vs on-peak energy split</div>
+        <div class="chart-sub">INT 1–8 (off-peak) vs INT 9–24 (on-peak)</div>
+        <div style="position:relative;height:220px;"><canvas id="peakSplitChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPLIERS -->
+  <div id="tab-suppliers" class="panel">
+    <div class="sup-grid" id="sup-cards"></div>
+    <div class="chart-grid full">
+      <div class="chart-card">
+        <div class="chart-title">Supplier daily energy comparison (MWh)</div>
+        <div class="chart-sub">Side-by-side view of each supplier's daily output</div>
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-box" style="background:#1e4080"></div>PSALM — Power Sector Assets &amp; Liabilities Mgmt. Corp.</div>
+          <div class="legend-item"><div class="legend-box" style="background:#0f6e56"></div>TSI — Therma South, Inc.</div>
+          <div class="legend-item"><div class="legend-box" style="background:#993c1d"></div>SMCPC — Malita Power Inc.</div>
+        </div>
+        <div style="position:relative;height:300px;"><canvas id="supCompChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div id="tab-table" class="panel">
+    <div class="tbl-wrap">
+      <table class="data-table" id="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Total (MWh)</th>
+            <th>Peak (MW)</th>
+            <th>PSALM (MWh)</th>
+            <th>TSI (MWh)</th>
+            <th>SMCPC (MWh)</th>
+            <th>PSALM %</th>
+            <th>TSI %</th>
+            <th>SMCPC %</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Energy Utilization &amp; Demand Dashboard &nbsp;·&nbsp; Supply Summary Mar 26–Apr 14 2026 &nbsp;·&nbsp; Generated from Supply_Summary.xlsx</div>
+
+<script>
+const RAW = {"dates": ["2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14"], "totalDaily": [273.3, 490.3, 468.4, 465.2, 502.3, 510.0, 510.6, 466.6, 455.9, 471.2, 454.0, 494.9, 502.9, 506.9, 486.9, 493.8, 482.1, 491.0, 501.4, 511.8], "totalPeak": [13.0, 23.36, 23.29, 23.22, 23.0, 23.11, 23.23, 22.21, 22.4, 22.86, 23.0, 23.19, 23.64, 23.56, 23.96, 23.59, 23.7, 23.27, 23.54, 23.61], "avgProfile": [18.7, 17.82, 16.48, 16.25, 16.25, 16.44, 15.87, 16.33, 18.66, 20.08, 20.85, 21.38, 21.96, 22.17, 22.26, 22.04, 21.75, 21.65, 22.21, 22.49, 22.57, 22.41, 20.8, 19.54], "suppliers": {"PSALM": {"daily": [183.8, 195.8, 196.3, 193.6, 192.1, 193.0, 193.1, 191.9, 179.7, 171.2, 176.8, 192.2, 193.6, 194.3, 195.6, 196.9, 196.5, 194.7, 194.3, 194.1], "peak": [9.0, 9.36, 9.44, 9.22, 9.0, 9.19, 9.23, 9.0, 8.41, 8.86, 9.0, 9.19, 9.64, 9.56, 9.96, 9.75, 9.7, 9.27, 9.54, 9.61]}, "TSI": {"daily": [89.5, 88.5, 89.5, 87.5, 94.0, 94.5, 94.0, 90.0, 88.5, 91.5, 90.0, 92.5, 91.5, 93.5, 95.0, 94.5, 89.5, 88.0, 92.0, 96.0], "peak": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0]}, "SMCPC": {"daily": [210.0, 206.0, 182.6, 184.2, 216.2, 222.4, 223.4, 184.7, 187.7, 208.4, 187.2, 210.2, 217.9, 219.1, 196.3, 202.4, 196.0, 208.3, 215.1, 221.6], "peak": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 9.98, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]}}, "stats": {"totalMWh": 9539.5, "peakMW": 23.96, "peakDate": "2026-04-09", "avgDaily": 477.0, "supTotals": {"PSALM": 3819.5, "TSI": 1830.0, "SMCPC": 4099.7}, "supPct": {"PSALM": 40.0, "TSI": 19.2, "SMCPC": 43.0}}};
+
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const SUP_COLORS = { PSALM:'#1e4080', TSI:'#0f6e56', SMCPC:'#993c1d' };
+const SUP_FULL = { PSALM:'Power Sector Assets & Liabilities Mgmt.', TSI:'Therma South, Inc.', SMCPC:'Malita Power Inc. (Malita)' };
+const GRID = 'rgba(0,0,0,0.06)';
+const charts = {};
+
+function fmtDate(d){ return d.slice(5).replace('-','/'); }
+function dayName(d){ return DAYS[new Date(d).getDay()]; }
+function getIdx(){ 
+  const from = document.getElementById('fil-from').value;
+  const to = document.getElementById('fil-to').value;
+  const sup = document.getElementById('fil-supplier').value;
+  return RAW.dates.map((d,i)=>({d,i})).filter(({d})=>d>=from && d<=to).map(({i})=>i);
+}
+
+let filteredIdx = RAW.dates.map((_,i)=>i);
+let activeSup = 'ALL';
+
+function applyFilters(){
+  filteredIdx = getIdx();
+  activeSup = document.getElementById('fil-supplier').value;
+  const n = filteredIdx.length;
+  document.getElementById('filter-status').textContent = `Showing ${n} day${n!==1?'s':''}`;
+  rebuildAll();
+}
+function resetFilters(){
+  document.getElementById('fil-supplier').value='ALL';
+  document.getElementById('fil-from').value='2026-03-26';
+  document.getElementById('fil-to').value='2026-04-14';
+  applyFilters();
+}
+
+function fd(idx){ return idx.map(i=>fmtDate(RAW.dates[i])); }
+function fv(arr,idx){ return idx.map(i=>arr[i]); }
+
+function makeChart(id, cfg){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+function baseOpts(extras={}){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, ...extras.plugins },
+    scales:{
+      x:{ grid:{color:GRID}, ticks:{color:'#777',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:12} },
+      y:{ grid:{color:GRID}, ticks:{color:'#777',font:{size:11}} },
+      ...extras.scales
+    },
+    ...extras
+  };
+}
+
+function buildKPIs(){
+  const idx = filteredIdx;
+  const totals = fv(RAW.totalDaily, idx);
+  const peaks = fv(RAW.totalPeak, idx);
+  const totalMWh = totals.reduce((a,v)=>a+v,0);
+  const peakMax = Math.max(...peaks);
+  const peakDate = RAW.dates[idx[peaks.indexOf(peakMax)]];
+  const avgDaily = totalMWh/idx.length;
+
+  const sups = activeSup==='ALL' ? ['PSALM','TSI','SMCPC'] : [activeSup];
+  const supMWh = sups.reduce((a,s)=>a+fv(RAW.suppliers[s].daily,idx).reduce((x,v)=>x+v,0),0);
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total energy</div><div class="kpi-value">${totalMWh.toFixed(0)}<span class="kpi-unit"> MWh</span></div><div class="kpi-sub">${idx.length} days</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Avg daily</div><div class="kpi-value">${avgDaily.toFixed(0)}<span class="kpi-unit"> MWh</span></div><div class="kpi-sub">per day</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Peak demand</div><div class="kpi-value">${peakMax.toFixed(2)}<span class="kpi-unit"> MW</span></div><div class="kpi-sub">${fmtDate(peakDate)}</div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Avg peak/day</div><div class="kpi-value">${(peaks.reduce((a,v)=>a+v,0)/peaks.length).toFixed(1)}<span class="kpi-unit"> MW</span></div><div class="kpi-sub">mean daily peak</div></div>
+  `;
+}
+
+function buildDemandKPIs(){
+  const idx = filteredIdx;
+  const peaks = fv(RAW.totalPeak,idx);
+  const peakMax = Math.max(...peaks);
+  const peakMin = Math.min(...peaks);
+  const peakDate = RAW.dates[idx[peaks.indexOf(peakMax)]];
+  const daysAbove23 = peaks.filter(v=>v>=23).length;
+  document.getElementById('demand-kpis').innerHTML = `
+    <div class="kpi-card red"><div class="kpi-label">Highest peak</div><div class="kpi-value">${peakMax.toFixed(2)}<span class="kpi-unit"> MW</span></div><div class="kpi-sub">${fmtDate(peakDate)}</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Lowest peak</div><div class="kpi-value">${peakMin.toFixed(2)}<span class="kpi-unit"> MW</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">Avg peak</div><div class="kpi-value">${(peaks.reduce((a,v)=>a+v,0)/peaks.length).toFixed(2)}<span class="kpi-unit"> MW</span></div></div>
+    <div class="kpi-card amber"><div class="kpi-label">Days ≥ 23 MW</div><div class="kpi-value">${daysAbove23}</div><div class="kpi-sub">of ${idx.length} days</div></div>
+  `;
+}
+
+function buildSupCards(){
+  const idx = filteredIdx;
+  const totalMWh = fv(RAW.totalDaily,idx).reduce((a,v)=>a+v,0);
+  let html = '';
+  const colors = ['#1e4080','#0f6e56','#993c1d'];
+  ['PSALM','TSI','SMCPC'].forEach((s,si)=>{
+    const daily = fv(RAW.suppliers[s].daily,idx);
+    const tot = daily.reduce((a,v)=>a+v,0);
+    const pk = Math.max(...fv(RAW.suppliers[s].peak,idx));
+    const pct = (tot/totalMWh*100).toFixed(1);
+    const avg = (tot/idx.length).toFixed(1);
+    html += `<div class="sup-card">
+      <div class="sup-name">${s}</div>
+      <div class="sup-full">${SUP_FULL[s]}</div>
+      <div class="sup-stat"><span class="sup-stat-label">Total energy</span><span class="sup-stat-val">${tot.toFixed(0)} MWh</span></div>
+      <div class="sup-stat"><span class="sup-stat-label">Share</span><span class="sup-stat-val">${pct}%</span></div>
+      <div class="sup-stat"><span class="sup-stat-label">Avg daily</span><span class="sup-stat-val">${avg} MWh</span></div>
+      <div class="sup-stat"><span class="sup-stat-label">Peak MW</span><span class="sup-stat-val">${pk.toFixed(2)} MW</span></div>
+      <div class="pct-bar"><div class="pct-fill" style="width:${pct}%;background:${colors[si]}"></div></div>
+    </div>`;
+  });
+  document.getElementById('sup-cards').innerHTML = html;
+}
+
+function buildTable(){
+  const idx = filteredIdx;
+  let html = '';
+  idx.forEach(i=>{
+    const tot = RAW.totalDaily[i];
+    const pk = RAW.totalPeak[i];
+    const ps = RAW.suppliers.PSALM.daily[i];
+    const ts = RAW.suppliers.TSI.daily[i];
+    const sm = RAW.suppliers.SMCPC.daily[i];
+    const pkClass = pk>=23.5?'peak-high':pk>=23?'peak-mid':'peak-low';
+    html += `<tr>
+      <td>${RAW.dates[i]}</td>
+      <td>${dayName(RAW.dates[i])}</td>
+      <td>${tot.toFixed(1)}</td>
+      <td class="${pkClass}">${pk.toFixed(2)}</td>
+      <td>${ps.toFixed(1)}</td>
+      <td>${ts.toFixed(1)}</td>
+      <td>${sm.toFixed(1)}</td>
+      <td>${(ps/tot*100).toFixed(1)}%</td>
+      <td>${(ts/tot*100).toFixed(1)}%</td>
+      <td>${(sm/tot*100).toFixed(1)}%</td>
+    </tr>`;
+  });
+  document.getElementById('table-body').innerHTML = html;
+}
+
+function buildOverviewCharts(){
+  const idx = filteredIdx;
+  const labels = fd(idx);
+  const totals = fv(RAW.totalDaily,idx);
+  const peaks = fv(RAW.totalPeak,idx);
+
+  makeChart('overviewChart',{
+    data:{labels, datasets:[
+      {type:'bar',label:'MWh',data:totals,backgroundColor:'rgba(30,64,128,0.75)',yAxisID:'y'},
+      {type:'line',label:'Peak MW',data:peaks,borderColor:'#e24b4a',borderWidth:2,pointRadius:3,pointBackgroundColor:'#e24b4a',tension:.3,yAxisID:'y1'}
+    ]},
+    options:{...baseOpts(),plugins:{legend:{display:false}},scales:{
+      x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},
+      y:{position:'left',grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MWh',color:'#999',font:{size:11}}},
+      y1:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#e24b4a',font:{size:11}},title:{display:true,text:'MW',color:'#e24b4a',font:{size:11}}}
+    }}
+  });
+
+  const sups = activeSup==='ALL'?['PSALM','TSI','SMCPC']:[activeSup];
+  const supTotals = sups.map(s=>fv(RAW.suppliers[s].daily,idx).reduce((a,v)=>a+v,0));
+  const supColors = sups.map(s=>SUP_COLORS[s]);
+  makeChart('pieChart',{
+    type:'doughnut',
+    data:{labels:sups,datasets:[{data:supTotals,backgroundColor:supColors,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},color:'#555',padding:10,boxWidth:12}}}}
+  });
+
+  const cumul = totals.reduce((acc,v,i)=>{acc.push(+(((acc[i-1]||0)+v).toFixed(1)));return acc;},[]);
+  makeChart('cumulChart',{
+    type:'line',
+    data:{labels,datasets:[{data:cumul,borderColor:'#1e4080',borderWidth:2,fill:true,backgroundColor:'rgba(30,64,128,0.06)',pointRadius:0,tension:.3}]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MWh',color:'#999',font:{size:11}}}}})
+  });
+
+  const intLabels = Array.from({length:24},(_,i)=>`I${i+1}`);
+  makeChart('profileMini',{
+    type:'line',
+    data:{labels:intLabels,datasets:[{data:RAW.avgProfile,borderColor:'#7f77dd',borderWidth:2,fill:true,backgroundColor:'rgba(127,119,221,0.08)',pointRadius:0,tension:.4}]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:9}}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}}}}})
+  });
+}
+
+function buildDailyCharts(){
+  const idx = filteredIdx;
+  const labels = fd(idx);
+  makeChart('dailyStackedChart',{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'PSALM',data:fv(RAW.suppliers.PSALM.daily,idx),backgroundColor:'rgba(30,64,128,0.82)'},
+      {label:'TSI',data:fv(RAW.suppliers.TSI.daily,idx),backgroundColor:'rgba(15,110,86,0.82)'},
+      {label:'SMCPC',data:fv(RAW.suppliers.SMCPC.daily,idx),backgroundColor:'rgba(153,60,29,0.82)'}
+    ]},
+    options:{...baseOpts(),scales:{
+      x:{stacked:true,grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},
+      y:{stacked:true,grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MWh',color:'#999',font:{size:11}}}
+    }}
+  });
+
+  makeChart('supLineChart',{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'PSALM',data:fv(RAW.suppliers.PSALM.daily,idx),borderColor:'#1e4080',borderWidth:2,pointRadius:3,tension:.3,fill:false},
+      {label:'TSI',data:fv(RAW.suppliers.TSI.daily,idx),borderColor:'#0f6e56',borderWidth:2,pointRadius:3,tension:.3,fill:false,borderDash:[5,3]},
+      {label:'SMCPC',data:fv(RAW.suppliers.SMCPC.daily,idx),borderColor:'#993c1d',borderWidth:2,pointRadius:3,tension:.3,fill:false}
+    ]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MWh',color:'#999',font:{size:11}}}}})
+  });
+
+  const mkCumul = (s)=>fv(RAW.suppliers[s].daily,idx).reduce((acc,v,i)=>{acc.push(+(((acc[i-1]||0)+v).toFixed(1)));return acc;},[]);
+  makeChart('cumulSupChart',{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'PSALM',data:mkCumul('PSALM'),borderColor:'#1e4080',borderWidth:2,pointRadius:0,tension:.3,fill:false},
+      {label:'TSI',data:mkCumul('TSI'),borderColor:'#0f6e56',borderWidth:2,pointRadius:0,tension:.3,fill:false,borderDash:[4,3]},
+      {label:'SMCPC',data:mkCumul('SMCPC'),borderColor:'#993c1d',borderWidth:2,pointRadius:0,tension:.3,fill:false}
+    ]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}}}}})
+  });
+}
+
+function buildDemandCharts(){
+  const idx = filteredIdx;
+  const labels = fd(idx);
+  const peaks = fv(RAW.totalPeak,idx);
+
+  makeChart('peakChart',{
+    type:'bar',
+    data:{labels,datasets:[{data:peaks,backgroundColor:peaks.map(v=>v>=23.5?'rgba(226,75,74,0.82)':v>=23?'rgba(245,158,11,0.82)':'rgba(30,64,128,0.75)')}]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{min:10,grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MW',color:'#999',font:{size:11}}}}})
+  });
+
+  makeChart('supPeakChart',{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'PSALM',data:fv(RAW.suppliers.PSALM.peak,idx),backgroundColor:'rgba(30,64,128,0.8)'},
+      {label:'TSI',data:fv(RAW.suppliers.TSI.peak,idx),backgroundColor:'rgba(15,110,86,0.8)'},
+      {label:'SMCPC',data:fv(RAW.suppliers.SMCPC.peak,idx),backgroundColor:'rgba(153,60,29,0.8)'}
+    ]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MW',color:'#999',font:{size:11}}}}})
+  });
+
+  const bins = ['< 20','20–21','21–22','22–23','≥ 23'];
+  const counts = [0,0,0,0,0];
+  peaks.forEach(v=>{ if(v<20)counts[0]++; else if(v<21)counts[1]++; else if(v<22)counts[2]++; else if(v<23)counts[3]++; else counts[4]++; });
+  makeChart('peakHistChart',{
+    type:'bar',
+    data:{labels:bins,datasets:[{data:counts,backgroundColor:['#1d9e75','#1d9e75','#f59e0b','#f59e0b','#e24b4a']}]},
+    options:{...baseOpts(),scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11},stepSize:1},title:{display:true,text:'Days',color:'#999',font:{size:11}}}}}
+  });
+}
+
+function buildProfileCharts(){
+  const intLabels = Array.from({length:24},(_,i)=>`INT ${i+1}`);
+  const shortLabels = Array.from({length:24},(_,i)=>`I${i+1}`);
+
+  makeChart('profileChart',{
+    type:'line',
+    data:{labels:intLabels,datasets:[{label:'Avg MW',data:RAW.avgProfile,borderColor:'#7f77dd',borderWidth:2.5,fill:true,backgroundColor:'rgba(127,119,221,0.07)',pointRadius:4,pointBackgroundColor:'#7f77dd',tension:.4}]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MW',color:'#999',font:{size:11}}}}})
+  });
+
+  const minP=[11,11.5,9.5,9.5,10,9.5,9.5,10,12.33,13,13,13,13,13,13,13,13,13,13,13,13,13,11.5,0];
+  const maxP=[21.9,21.4,19.2,18.3,18.6,19.1,18.3,20,22.1,22.7,23,23.1,23.2,23.3,23.4,23.5,23.2,23.3,23.2,23.5,23.6,24,22.5,22];
+  makeChart('bandChart',{
+    type:'line',
+    data:{labels:shortLabels,datasets:[
+      {label:'Max',data:maxP,borderColor:'rgba(226,75,74,0.8)',borderWidth:1.5,pointRadius:0,fill:'+1',backgroundColor:'rgba(226,75,74,0.05)',tension:.3},
+      {label:'Avg',data:RAW.avgProfile,borderColor:'#1e4080',borderWidth:2,pointRadius:3,pointBackgroundColor:'#1e4080',fill:false,tension:.3},
+      {label:'Min',data:minP,borderColor:'rgba(29,158,117,0.8)',borderWidth:1.5,pointRadius:0,fill:false,tension:.3}
+    ]},
+    options:{...baseOpts(),plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},color:'#555',padding:10,boxWidth:12}}},scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:9}}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MW',color:'#999',font:{size:11}}}}}
+  });
+
+  const offPeak = RAW.avgProfile.slice(0,8).reduce((a,v)=>a+v,0);
+  const onPeak = RAW.avgProfile.slice(8).reduce((a,v)=>a+v,0);
+  makeChart('peakSplitChart',{
+    type:'doughnut',
+    data:{labels:['Off-peak (INT 1–8)','On-peak (INT 9–24)'],datasets:[{data:[offPeak.toFixed(1),onPeak.toFixed(1)],backgroundColor:['#1e4080','#e24b4a'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},color:'#555',padding:10,boxWidth:12}}}}
+  });
+}
+
+function buildSupCharts(){
+  const idx = filteredIdx;
+  const labels = fd(idx);
+  makeChart('supCompChart',{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'PSALM',data:fv(RAW.suppliers.PSALM.daily,idx),backgroundColor:'rgba(30,64,128,0.8)'},
+      {label:'TSI',data:fv(RAW.suppliers.TSI.daily,idx),backgroundColor:'rgba(15,110,86,0.8)'},
+      {label:'SMCPC',data:fv(RAW.suppliers.SMCPC.daily,idx),backgroundColor:'rgba(153,60,29,0.8)'}
+    ]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:'#777',font:{size:10},maxRotation:45}},y:{grid:{color:GRID},ticks:{color:'#777',font:{size:11}},title:{display:true,text:'MWh',color:'#999',font:{size:11}}}}})
+  });
+}
+
+function rebuildAll(){
+  buildKPIs();
+  buildDemandKPIs();
+  buildSupCards();
+  buildTable();
+  buildOverviewCharts();
+  buildDailyCharts();
+  buildDemandCharts();
+  buildProfileCharts();
+  buildSupCharts();
+}
+
+let activeTab = 'overview';
+function showTab(name, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  activeTab = name;
+}
+
+rebuildAll();
+</script>
+</body>
+</html>
